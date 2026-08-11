@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSignInEmailPassword, useSignUpEmailPassword, useAuthenticationStatus } from '@nhost/nextjs';
+import { useSignInEmailPassword, useSignUpEmailPassword, useAuthenticationStatus } from '@nhost/react';
 import { useRouter } from 'next/navigation';
 import { Shield, Mail, Lock, User, RefreshCw, ArrowRight } from 'lucide-react';
 
@@ -18,12 +18,17 @@ export default function LoginPage() {
   const { signInEmailPassword, isLoading: isSigningIn, error: signInError } = useSignInEmailPassword();
   const { signUpEmailPassword, isLoading: isSigningUp, error: signUpError } = useSignUpEmailPassword();
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Redirect to home if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isMounted && isAuthenticated) {
       router.push('/');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, isMounted]);
 
   // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,35 +40,40 @@ export default function LoginPage() {
       return;
     }
 
-    if (isSignUp) {
-      // For sign up, Nhost creates the user
-      // We can also pass displayName in options
-      const res = await signUpEmailPassword(email, password, {
-        displayName: name || email.split('@')[0],
-        metadata: { name }
-      });
-      if (res.isError) {
-        setErrorMsg(res.error?.message || 'Failed to sign up.');
+    try {
+      if (isSignUp) {
+        // For sign up, Nhost creates the user
+        // We can also pass displayName in options
+        const res = await signUpEmailPassword(email, password, {
+          displayName: name || email.split('@')[0],
+          metadata: { name }
+        });
+        if (res.isError) {
+          setErrorMsg(res.error?.message || 'Failed to sign up.');
+        } else {
+          // Sign up automatically logs in
+          router.push('/');
+        }
       } else {
-        // Sign up automatically logs in
-        router.push('/');
+        const res = await signInEmailPassword(email, password);
+        if (res.isError) {
+          setErrorMsg(res.error?.message || 'Incorrect email or password.');
+        } else {
+          router.push('/');
+        }
       }
-    } else {
-      const res = await signInEmailPassword(email, password);
-      if (res.isError) {
-        setErrorMsg(res.error?.message || 'Incorrect email or password.');
-      } else {
-        router.push('/');
-      }
+    } catch (err: any) {
+      console.error('Auth submit error:', err);
+      setErrorMsg(err?.message || 'A connection or runtime error occurred. Please check if your Nhost server is running.');
     }
   };
 
-  if (authLoading) {
+  if (!isMounted || authLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-100">
         <div className="flex flex-col items-center gap-4">
           <RefreshCw className="h-10 w-10 animate-spin text-indigo-500" />
-          <p className="text-slate-400 text-sm">Authenticating...</p>
+          <p className="text-slate-400 text-sm font-semibold">Authenticating...</p>
         </div>
       </div>
     );

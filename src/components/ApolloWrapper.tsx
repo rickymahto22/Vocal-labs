@@ -1,25 +1,26 @@
 'use client';
 
-import React from 'react';
-import { NhostClient, NhostProvider } from '@nhost/nextjs';
+import React, { useState, useEffect } from 'react';
+import { NhostClient, NhostNextProvider } from '@nhost/nextjs';
 import { NhostApolloProvider } from '@nhost/react-apollo';
+import { loadDevMessages, loadErrorMessages } from "@apollo/client/dev";
 
-// Initialize the Nhost client
-// Subdomain and region are fetched from environment variables or fall back to 'local' for development
-const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || 'local';
-const region = process.env.NEXT_PUBLIC_NHOST_REGION || '';
-
-const nhost = new NhostClient({
-  subdomain,
-  region
-});
+if (process.env.NODE_ENV !== 'production') {
+  loadDevMessages();
+  loadErrorMessages();
+}
 
 export function ApolloWrapper({ children }: { children: React.ReactNode }) {
+  const [nhost] = useState(() => new NhostClient({
+    subdomain: process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || 'local',
+    region: process.env.NEXT_PUBLIC_NHOST_REGION || ''
+  }));
+
   return (
-    <NhostProvider nhost={nhost}>
+    <NhostNextProvider nhost={nhost}>
       <NhostApolloProvider nhost={nhost}>
         {children}
       </NhostApolloProvider>
-    </NhostProvider>
+    </NhostNextProvider>
   );
 }

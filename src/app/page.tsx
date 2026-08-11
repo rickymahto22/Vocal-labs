@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuthenticationStatus, useSignOut, useUserId } from '@nhost/nextjs';
+import { useAuthenticationStatus, useSignOut, useUserId } from '@nhost/react';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { useRouter } from 'next/navigation';
 import { 
@@ -205,6 +205,26 @@ const STEP_TYPES = [
 ];
 
 export default function Dashboard() {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="h-10 w-10 animate-spin text-indigo-500" />
+          <p className="text-slate-400 text-sm font-semibold">Loading workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
   const router = useRouter();
   const userId = useUserId();
   const { signOut } = useSignOut();
@@ -518,7 +538,16 @@ export default function Dashboard() {
     setWorkflowSteps(updated);
   };
 
-  if (authLoading) return null;
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="h-10 w-10 animate-spin text-indigo-500" />
+          <p className="text-slate-400 text-sm font-semibold">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
